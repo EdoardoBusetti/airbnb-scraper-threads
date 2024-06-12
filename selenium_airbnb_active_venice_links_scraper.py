@@ -17,6 +17,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 
 import settings
 import logging
@@ -93,23 +94,29 @@ def get_number_of_rooms_in_page(driver):
     if not num_rooms_text_re:
         return None
     else:
-        num_rooms_elem = int(num_rooms_text_re[0])
-        if num_rooms_elem > (MAX_PAGES * MAX_HOMES_PER_PAGE):
+        number_of_rooms_in_page = int(num_rooms_text_re[0])
+        if number_of_rooms_in_page > (MAX_PAGES * MAX_HOMES_PER_PAGE):
             logger.warning(
-                f"[{price_min} - {price_max}] there are {num_rooms_elem} rooms at this price level. Airbnb shows {MAX_PAGES} pages max with {MAX_HOMES_PER_PAGE} homes per page. so you might be losing some information."
+                f"[{price_min} - {price_max}] there are {number_of_rooms_in_page} rooms at this price level. Airbnb shows {MAX_PAGES} pages max with {MAX_HOMES_PER_PAGE} homes per page. so you might be losing some information."
             )
-        return num_rooms_elem
+        return number_of_rooms_in_page
 
 
 def get_number_of_rooms_in_page_with_retry(driver, link_to_get, max_retries=2):
     price_min, price_max = get_price_min_and_max_from_url(driver.current_url)
     for i in range(max_retries):
         try:
-            num_rooms_elem = get_number_of_rooms_in_page(driver)
+            number_of_rooms_in_page = get_number_of_rooms_in_page(driver)
             logger.info(
                 f"[{price_min} - {price_max}] success in finding number of rooms"
             )
-            return num_rooms_elem
+            return number_of_rooms_in_page
+        except TimeoutException:
+            logger.warning(
+                f"[{price_min} - {price_max}] timeout while waiting for room number. likely there are no rooms for this price level"
+            )
+            return 0
+
         except Exception as ex:
             str_to_wrn = f"[{price_min} - {price_max}] An error occurred while trying to get number of rooms in page: {type(ex).__name__}\n Retrying... {i+1}/{max_retries} \n {driver.current_url}"
             logger.warning(str_to_wrn)
@@ -179,16 +186,20 @@ def get_available_rooms_at_link(link_to_get, result_queue):
     driver = driver_setup()
     driver.get(link_to_get)
 
-    num_rooms_elem = get_number_of_rooms_in_page_with_retry(driver, link_to_get)
-    logger.info(f"[{price_min} - {price_max}] number of rooms: {num_rooms_elem}")
-    if not num_rooms_elem:
+    number_of_rooms_in_page = get_number_of_rooms_in_page_with_retry(
+        driver, link_to_get
+    )
+    logger.info(
+        f"[{price_min} - {price_max}] number of rooms: {number_of_rooms_in_page}"
+    )
+    if not number_of_rooms_in_page:
         logger.info(
             f"[{price_min} - {price_max}] No rooms with price between {price_min} and {price_max} in selected region."
         )
         return []
-    if num_rooms_elem <= MAX_HOMES_PER_PAGE:
+    if number_of_rooms_in_page <= MAX_HOMES_PER_PAGE:
         number_of_pages = 1
-        log_temp_str = f"[{price_min} - {price_max}] only {num_rooms_elem} rooms. So will only be done in 1 iteration. Max homes per page = {MAX_HOMES_PER_PAGE}"
+        log_temp_str = f"[{price_min} - {price_max}] only {number_of_rooms_in_page} rooms. So will only be done in 1 iteration. Max homes per page = {MAX_HOMES_PER_PAGE}"
         logger.info(log_temp_str)
     else:
         number_of_pages = get_number_of_room_pages(driver)

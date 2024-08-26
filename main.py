@@ -23,7 +23,7 @@ Base.metadata.create_all(engine)
 
 session = Session(engine)
 
-links_to_scrape = generate_links_to_scrape()[:3]
+links_to_scrape = generate_links_to_scrape()[:15]
 logger.info(f"number of links to scrape: {len(links_to_scrape)}")
 
 MAX_BATCH_SIZE = 10

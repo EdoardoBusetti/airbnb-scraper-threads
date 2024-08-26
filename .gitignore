@@ -1,0 +1,5 @@
+# Ignore data directory
+data/
+
+# Ignore Python cache directories
+__pycache__/

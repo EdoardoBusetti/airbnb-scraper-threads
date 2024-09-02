@@ -1,19 +1,23 @@
 # For Heroku
-import gc
+# import gc
 import math
-import os
+
+# import os
 import re
-import json
+
+# import json
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 import time
-import traceback
-import uuid
-from datetime import datetime
-from bs4 import BeautifulSoup
-from urllib import parse
 
-from selenium import webdriver
+# import traceback
+# import uuid
+# from datetime import datetime
+from bs4 import BeautifulSoup
+
+# from urllib import parse
+
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -21,7 +25,7 @@ from selenium.common.exceptions import TimeoutException
 
 import settings
 import logging
-from selenium.webdriver.chrome.options import Options
+from my_webdriver import driver_setup
 
 
 from models import AirBnbRoom
@@ -53,17 +57,6 @@ def get_price_min_and_max_from_url(url):
     price_min = parse_qs(parsed_url.query)["price_min"][0]
     price_max = parse_qs(parsed_url.query)["price_max"][0]
     return price_min, price_max
-
-
-def driver_setup():
-    if settings.HEADLESS:
-        options = Options()
-        options.add_argument("--headless")
-    else:
-        options = None
-
-    driver = webdriver.Chrome(options=options)
-    return driver
 
 
 def get_number_of_rooms_in_page(driver):

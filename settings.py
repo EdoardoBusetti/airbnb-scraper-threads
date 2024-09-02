@@ -1,4 +1,4 @@
-HEADLESS = True
+driver_settings = {"headless": True}
 
 
 AREAS_SETTINGS = {

@@ -87,6 +87,10 @@ class AirBnbRoomDetailsUpdate(Base):
         default=func.now(),
         comment="Timestamp when the room update was created",
     )
+    finished_at = Column(
+        DateTime,
+        onupdate=func.now(),
+    )
     any_changes = Column(
         Boolean, comment="True if there were any changes compared to previous version"
     )
@@ -97,7 +101,7 @@ class AirBnbRoomCalendarDay(Base):
     room_id = Column(String, ForeignKey(AirBnbRoom.id), primary_key=True)
     calendar_day = Column(Date, primary_key=True)
     created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
     previous_state = Column(String)
     current_state = Column(String)
     price = Column(Float)
@@ -115,6 +119,10 @@ class AirBnbRoomCalendarUpdate(Base):
         DateTime,
         default=func.now(),
         comment="Timestamp when the room calendar update was created",
+    )
+    finished_at = Column(
+        DateTime,
+        onupdate=func.now(),
     )
     any_changes = Column(
         Boolean, comment="True if there were any changes compared to previous version"

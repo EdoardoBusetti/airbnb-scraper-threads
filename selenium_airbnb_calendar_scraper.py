@@ -2,6 +2,7 @@ import time
 import math
 import pandas as pd
 from datetime import datetime
+
 # from models import AirBnbCalendar
 import logging
 from my_webdriver import driver_setup
@@ -93,47 +94,6 @@ def get_calendar_table_from_driver(driver):
                 all_tables_data.append(cell_data)
     return all_tables_data
 
-def get_dates_availability_with_min_nights(driver, **ar):
-    nexts_to_clieck = 6
-    current_month = datetime.now()
-    tables = WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "._cvkwaj"))
-    )
-    all_tables_data = []  # Initialize list to store all data
-    next_clicks_done = 0
-
-    # Iterate through each table
-    for table in tables:
-        print("textt", table.text)
-        # Extract rows from the current table
-        rows = table.find_elements(By.TAG_NAME, "tr")
-
-        # Initialize list to store data for the current table
-
-        # Iterate through rows and extract cell data
-        for row in rows:
-            cells = row.find_elements(By.TAG_NAME, "td")
-            for cell in cells:
-                aria_lable = cell.get_attribute("aria-label") if cell.get_attribute("aria-label") else ""
-                if "Select as check-in date" in aria_lable:
-                    print(aria_lable, cell.get_attribute("aria-disabled"))
-                    cell.click()
-                    time.sleep(0.1)
-                    current_date_button = driver.find_element(By.CLASS_NAME, '_ubf03zg')
-                    cell_data = {
-                        "aria-disabled": current_date_button.get_attribute("aria-disabled"),
-                        "aria-label": current_date_button.get_attribute("aria-label"),
-                    }
-                    clear_dates()
-                    time.sleep(10)
-                else:
-                    cell_data = {
-                        "aria-disabled": cell.get_attribute("aria-disabled"),
-                        "aria-label": cell.get_attribute("aria-label"),
-                    }
-                all_tables_data.append(cell_data)
-    return all_tables_data
-
 
 def is_day_disabled(day_disabled):
     if type(day_disabled) == bool:
@@ -164,7 +124,7 @@ def get_dates_availability(driver):
             all_tables_data_clean.append(
                 {
                     "day_disabled": is_day_disabled(cell_attributes["aria-disabled"]),
-                    "day_label":cell_attributes["aria-label"],
+                    "day_label": cell_attributes["aria-label"],
                     "date": parse_date(date_string),
                     "reason_string": reason_string.strip(),
                 }
@@ -178,6 +138,7 @@ def get_dates_availability(driver):
         all_tables_data_clean[-1]["date"],
     )
     return all_tables_data_clean
+
 
 def clear_dates():
     clear_dates_button = driver.find_element(By.XPATH, "//button[text()='Clear dates']")
@@ -210,16 +171,15 @@ def get_all_dates_availability(
 
 
 driver = driver_setup(settings={"headless": False})
-ROOM_URL_FOR_TEST=  "https://www.airbnb.com/rooms/34281543?adults=2" # "https://www.airbnb.com/rooms/634438216271572667?adults=2"
+ROOM_URL_FOR_TEST = "https://www.airbnb.com/rooms/34281543?adults=2"  # "https://www.airbnb.com/rooms/634438216271572667?adults=2"
 driver.get(ROOM_URL_FOR_TEST)
-
 
 
 close_translation_popup_if_exists(driver)
 # open_the_calendar_form(driver) # not needed as there is a table with dates in the main page, without even clicking on the calendar popup
 
 
-all_table_data_clean_all_months = get_dates_availability_with_min_nights(
+all_table_data_clean_all_months = get_all_dates_availability(
     driver,
     number_cal_fetches_needed=NUMBER_CAL_FETCHES_NEEDED,
     months_present_in_one_element=MONTHS_PRESENT_IN_ONE_ELEMENT,

@@ -20,8 +20,10 @@ Base = declarative_base()
 
 class CalendarDayState(StrEnum):
     AVAILABLE = "AVAILABLE"
-    NOT_AVAILABLE = "NOT_AVAILABLE"
+    AVAILABLE_NO_CHECKOUT_DATE = "AVAILABLE_NO_CHECKOUT_DATE"
     CHECKOUT_ONLY = "CHECKOUT_ONLY"
+    UNAVAILABLE = "UNAVAILABLE"
+    UNAVAILABLE_DUE_TO_PAST_DATE = "UNAVAILABLE_DUE_TO_PAST_DATE"
 
 
 class AirBnbRoom(Base):
@@ -52,6 +54,10 @@ class AirBnbRoom(Base):
         String,
         comment="URL of the Airbnb room listing that was used to find the room in the next run in which this room was found",
     )
+    extra_attributes = Column(
+        JSON,
+        comment="Json with extra attributes",
+    )
 
 
 class AirBnbRoomDetails(Base):
@@ -74,6 +80,10 @@ class AirBnbRoomDetails(Base):
         Integer,
         default=0,
         comment="Number of times the roomDetails entry has been updated -> Only counted if something changed in the details",
+    )
+    extra_attributes = Column(
+        JSON,
+        comment="Json with extra attributes",
     )
 
 
@@ -102,12 +112,23 @@ class AirBnbRoomCalendarDay(Base):
     calendar_day = Column(Date, primary_key=True)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+    state = Column(String)
     previous_state = Column(String)
-    current_state = Column(String)
-    price = Column(Float)
+    minimum_stay_nights = Column(Integer)
+    price = Column(
+        Float,
+        comment="It is the average price for the prices which this day has on the latest evaluation run. [one day can be in multiple stays intervals. this will be avg price for that room in those stay intervals]",
+    )
+    latest_prices_array = Column(
+        JSON,
+        comment="Array with the prices from current run. with their checking and checkout dates. [{'check_in':XXX,'check_out':YYY, 'price':price1},{'check_in':ZZZ,'check_out':KKK, 'price':price2}]",
+    )
     cleaning_fee = Column(Float)
-    service_fee_pct = Column(Float)
     currency = Column(String)
+    extra_attributes = Column(
+        JSON,
+        comment="Json with extra attributes",
+    )
 
 
 class AirBnbRoomCalendarUpdate(Base):
@@ -142,21 +163,14 @@ class AirBnbRoomCalendarDayTransition(Base):
     any_changes = Column(
         Boolean, comment="True if there were any changes compared to previous version"
     )
-
-
-
-# def save_or_update_airbnb_calendar_date(instance, session):
-#     existing_instance_latest_version = (
-#         session.query(AirBnbRoomCalendarDay)
-#         .filter_by(room_id=instance.room_id, date=instance.date)
-#         .order_by(AirBnbRoomCalendarDay.version.desc())
-#         .first()
-#     )
-#     if existing_instance_latest_version:
-#         instance.version = existing_instance_latest_version.version + 1
-#         session.add(instance)
-#     else:
-#         session.add(instance)
+    previous_state = Column(String)
+    current_state = Column(String)
+    previous_price = Column(Float)
+    current_price = Column(Float)
+    extra_attributes = Column(
+        JSON,
+        comment="Json with extra attributes",
+    )
 
 
 def save_or_update_airbnb_room_instance(instance, session):
@@ -166,3 +180,52 @@ def save_or_update_airbnb_room_instance(instance, session):
         session.merge(existing_instance)  # the new details will override the old  ones
     else:
         session.add(instance)
+
+
+def save_or_update_airbnb_date(new_instance: AirBnbRoomCalendarDay, session):
+    existing_instance: AirBnbRoomCalendarDay = (
+        session.query(AirBnbRoomCalendarDay)
+        .filter_by(room_id=new_instance.room_id, calendar_day=new_instance.calendar_day)
+        .first()
+    )
+    if existing_instance:
+        if existing_instance.state == new_instance.state:
+            existing_instance.previous_state = new_instance.previous_state
+            existing_instance.minimum_stay_nights = (
+                new_instance.minimum_stay_nights
+                if new_instance.minimum_stay_nights
+                else existing_instance.minimum_stay_nights
+            )
+            existing_instance.price = (
+                new_instance.price if new_instance.price else existing_instance.price
+            )
+            existing_instance.latest_prices_array = (
+                new_instance.latest_prices_array
+                if new_instance.latest_prices_array
+                else existing_instance.latest_prices_array
+            )
+            existing_instance.cleaning_fee = (
+                new_instance.cleaning_fee
+                if new_instance.cleaning_fee
+                else existing_instance.cleaning_fee
+            )
+            existing_instance.currency = (
+                new_instance.currency
+                if new_instance.currency
+                else existing_instance.currency
+            )
+            existing_instance.extra_attributes = {
+                **existing_instance.extra_attributes,
+                **new_instance.extra_attributes,
+            }  # Merge dictionaries, with new_instance's values prevailing in case of conflict
+            session.merge(
+                existing_instance
+            )  # the new details will override the old  ones
+        elif True:
+            pass
+            ####
+        else:
+            raise ValueError("not predicted state change transition")
+
+    else:
+        session.add(new_instance)

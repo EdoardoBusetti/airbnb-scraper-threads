@@ -119,6 +119,10 @@ class AirBnbRoomCalendarDay(Base):
         Float,
         comment="It is the average price for the prices which this day has on the latest evaluation run. [one day can be in multiple stays intervals. this will be avg price for that room in those stay intervals]",
     )
+    previous_price = Column(
+        Float,
+        comment="previous price",
+    )
     latest_prices_array = Column(
         JSON,
         comment="Array with the prices from current run. with their checking and checkout dates. [{'check_in':XXX,'check_out':YYY, 'price':price1},{'check_in':ZZZ,'check_out':KKK, 'price':price2}]",
@@ -190,12 +194,13 @@ def save_or_update_airbnb_date(new_instance: AirBnbRoomCalendarDay, session):
     )
     if existing_instance:
         if existing_instance.state == new_instance.state:
-            existing_instance.previous_state = new_instance.previous_state
+            existing_instance.previous_state = new_instance.state
             existing_instance.minimum_stay_nights = (
                 new_instance.minimum_stay_nights
                 if new_instance.minimum_stay_nights
                 else existing_instance.minimum_stay_nights
             )
+            existing_instance.previous_price = existing_instance.price
             existing_instance.price = (
                 new_instance.price if new_instance.price else existing_instance.price
             )
@@ -221,11 +226,45 @@ def save_or_update_airbnb_date(new_instance: AirBnbRoomCalendarDay, session):
             session.merge(
                 existing_instance
             )  # the new details will override the old  ones
-        elif True:
+        elif (
+            existing_instance.state != new_instance.state
+        ):  # TODO. Map each individual possible state transition and generate different AirBnbRoomCalendarDayTransition for each of those. (e. from AVAILABLE to UNAVAILABLE_DUE_TO_PAST_DATE. it is unbooked date)
+            existing_instance.previous_state = new_instance.state
+            existing_instance.minimum_stay_nights = (
+                new_instance.minimum_stay_nights
+                if new_instance.minimum_stay_nights
+                else existing_instance.minimum_stay_nights
+            )
+            existing_instance.previous_price = existing_instance.price
+            existing_instance.price = (
+                new_instance.price if new_instance.price else existing_instance.price
+            )
+            existing_instance.latest_prices_array = (
+                new_instance.latest_prices_array
+                if new_instance.latest_prices_array
+                else existing_instance.latest_prices_array
+            )
+            existing_instance.cleaning_fee = (
+                new_instance.cleaning_fee
+                if new_instance.cleaning_fee
+                else existing_instance.cleaning_fee
+            )
+            existing_instance.currency = (
+                new_instance.currency
+                if new_instance.currency
+                else existing_instance.currency
+            )
+            existing_instance.extra_attributes = {
+                **existing_instance.extra_attributes,
+                **new_instance.extra_attributes,
+            }  # Merge dictionaries, with new_instance's values prevailing in case of conflict
+            session.merge(
+                existing_instance
+            )  # the new details will override the old  ones
             pass
             ####
         else:
             raise ValueError("not predicted state change transition")
-
-    else:
+    else:  # we do not have any record yet for this day
         session.add(new_instance)
+        pass

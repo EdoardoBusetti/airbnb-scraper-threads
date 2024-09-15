@@ -59,7 +59,9 @@ t0 = datetime.now()
 logger.info("start to run threads")
 all_objects_to_write = run_threads()
 t1 = datetime.now()
-logger.info(f"threads run over. time it took: {t1-t0}")
+logger.info(
+    f"threads run over. time it took: {t1-t0}. num objects: {len(all_objects_to_write)}"
+)
 
 logger.info("start to add new objects")
 for object_to_write in all_objects_to_write:

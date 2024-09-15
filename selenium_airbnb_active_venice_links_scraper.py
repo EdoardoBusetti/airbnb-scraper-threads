@@ -106,7 +106,7 @@ def get_number_of_rooms_in_page_with_retry(driver, link_to_get, max_retries=2):
             return number_of_rooms_in_page
         except TimeoutException:
             logger.warning(
-                f"[{price_min} - {price_max}] timeout while waiting for room number. likely there are no rooms for this price level"
+                f"[{price_min} - {price_max}] timeout while waiting for room number. likely there are no rooms for this price level. {driver.current_url}"
             )
             return 0
 
@@ -156,7 +156,7 @@ def get_all_room_links_from_page(driver):
     if len(urls_temp) == 0:
         current_url = driver.current_url
         logger.warning(
-            f"[{price_min} - {price_max}] Page appares to not contian any link. current urk {current_url}"
+            f"[{price_min} - {price_max}] Page appares to not contain any link. current url {current_url}"
         )
         return []
     return urls_temp
@@ -176,7 +176,7 @@ def get_next_button(driver):
 
 def get_available_rooms_at_link(link_to_get, result_queue):
     price_min, price_max = get_price_min_and_max_from_url(link_to_get)
-    driver = driver_setup()
+    driver = driver_setup()  # settings={'headless':False}
     driver.get(link_to_get)
 
     number_of_rooms_in_page = get_number_of_rooms_in_page_with_retry(
@@ -213,14 +213,21 @@ def get_available_rooms_at_link(link_to_get, result_queue):
             next_button.click()
 
             # Wait appropriate time so that page is loaded
-            _ = WebDriverWait(driver, DEFAULT_LOAD_TIME_WAIT).until(
-                EC.visibility_of_element_located(
-                    (
-                        By.XPATH,
-                        """//*[@id="site-content"]/div/div[2]/div[1]/div/div/div/div[1]/div[1]/div/div[2]/div/div/div/div/a""",
+            try:
+                _ = WebDriverWait(driver, DEFAULT_LOAD_TIME_WAIT).until(
+                    EC.visibility_of_element_located(
+                        (
+                            By.XPATH,
+                            """//*[@id="site-content"]/div/div[2]/div[1]/div/div/div/div[1]/div[1]/div/div[2]/div/div/div/div/a""",
+                        )
                     )
                 )
-            )
+            except:
+                logger.error(
+                    "failed to load page after hitting next page button. %s",
+                    driver.current_url,
+                )
+                raise ValueError("temp")
 
     for room_url in full_list_of_room_links:
         room_ids = re.findall(r"\/rooms\/(\w+)\?", room_url)

@@ -261,10 +261,7 @@ def save_or_update_airbnb_date(new_instance: AirBnbRoomCalendarDay, session):
             session.merge(
                 existing_instance
             )  # the new details will override the old  ones
-            pass
-            ####
         else:
             raise ValueError("not predicted state change transition")
     else:  # we do not have any record yet for this day
         session.add(new_instance)
-        pass

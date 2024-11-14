@@ -320,6 +320,27 @@ def parse_pricing_from_pricing_form(input_string, num_nights):
             )
             return result
 
+    # Check for airbnb_service_fee pattern
+    if (("airbnb" in lower_input) and ("service" in lower_input) and ("fee" in lower_input)):
+        # Extract currency symbol if present
+        currency_match = re.search(currency_symbols, input_string)
+        currency = currency_match.group(0) if currency_match else None
+
+        # Extract amount
+        amount_match = re.search(r"(\d+[\d,]*)", input_string)
+        amount = int(amount_match.group(1).replace(",", "")) if amount_match else None
+
+        if amount is not None:
+            result.update(
+                {
+                    "description": "airbnb_service_fee",
+                    "amount": amount,
+                    "currency": currency,
+                    "extra": "",
+                }
+            )
+            return result
+
     # Check for night_price pattern
     if "night" in lower_input:
         # Extract currency symbol if present
@@ -452,6 +473,9 @@ def from_pricing_elements_to_pricing_dict(pricing_parsed_elements):
         elif pricing_element["description"] in {"last_minute_discount"}:
             pricing_dictionary_clean["last_minute_discount"] = pricing_element["amount"]
             currencies_set.add(pricing_element["currency"])
+        elif pricing_element["description"] in {"airbnb_service_fee"}:
+            pricing_dictionary_clean["airbnb_service_fee"] = pricing_element["amount"]
+            currencies_set.add(pricing_element["currency"])
         elif pricing_element["description"] in {"cleaning_fee"}:
             pricing_dictionary_clean["cleaning_fee"] = pricing_element["amount"]
             currencies_set.add(pricing_element["currency"])
@@ -460,7 +484,7 @@ def from_pricing_elements_to_pricing_dict(pricing_parsed_elements):
             pricing_dictionary_clean[others_count_str] = pricing_element["extra"]
         else:
             raise ValueError(
-                f"no specification found for pricing_element['description'] == {pricing_element['description']}"
+                f"no specification found for pricing_element['description'] == '{pricing_element['description']}'.\npricing_element: {pricing_element}"
             )
         assert (
             len(currencies_set) == 1
@@ -706,7 +730,6 @@ def generate_airbnb_calendar_day_list(calendar_days_details, ROOM_ID):
             room_id=ROOM_ID,
             calendar_day=date,
             state=date_details["current_date_state"],
-            previous_state=None,
             minimum_stay_nights=date_details["minimum_stay_nights"],
             price=calculate_mean(
                 [i["price"] for i in date_details["latest_prices_array"]]

@@ -26,6 +26,31 @@ class CalendarDayState(StrEnum):
     UNAVAILABLE_DUE_TO_PAST_DATE = "UNAVAILABLE_DUE_TO_PAST_DATE"
 
 
+
+class AirBnbScraperRun(Base):
+    """Stores details about each airbnb scraper run"""
+
+    __tablename__ = "airbnb_scrapers_runs"
+    scraper_name = Column(String, primary_key=True)
+    room_id = Column(String, primary_key=True)
+    created_at = Column(
+        DateTime,
+        default=func.now(),
+        comment="Timestamp when the scraping job was started",
+        primary_key=True
+    )
+    updated_at = Column(
+        DateTime,
+        onupdate=func.now(),
+        comment="Timestamp when the scraping job was ended"
+    )
+    is_success = Column(
+        Boolean, 
+        default=False,
+        comment="indicates if the scraping job terminated successfully"
+    )
+    comment = Column(String, comment = "comment on the execution of the scraping job")
+
 class AirBnbRoom(Base):
     """
     Represents an Airbnb room in the database.
@@ -61,7 +86,7 @@ class AirBnbRoom(Base):
 
 
 class AirBnbRoomDetails(Base):
-    """Represents the details for an AirBnbRoom. Is updated periodically."""
+    """Represents the details for an AirBnbRoom. It is updated periodically."""
 
     __tablename__ = "airbnb_room_details"
     room_id = Column(String, primary_key=True)
@@ -87,23 +112,23 @@ class AirBnbRoomDetails(Base):
     )
 
 
-class AirBnbRoomDetailsUpdate(Base):
-    """Stores time at which each room was updated"""
+# class AirBnbRoomDetailsUpdate(Base):
+#     """Stores time at which each room was updated"""
 
-    __tablename__ = "airbnb_room_details_updates"
-    room_id = Column(String, primary_key=True)
-    created_at = Column(
-        DateTime,
-        default=func.now(),
-        comment="Timestamp when the room update was created",
-    )
-    finished_at = Column(
-        DateTime,
-        onupdate=func.now(),
-    )
-    any_changes = Column(
-        Boolean, comment="True if there were any changes compared to previous version"
-    )
+#     __tablename__ = "airbnb_room_details_updates"
+#     room_id = Column(String, primary_key=True)
+#     created_at = Column(
+#         DateTime,
+#         default=func.now(),
+#         comment="Timestamp when the room update was created",
+#     )
+#     finished_at = Column(
+#         DateTime,
+#         onupdate=func.now(),
+#     )
+#     any_changes = Column(
+#         Boolean, comment="True if there were any changes compared to previous version"
+#     )
 
 
 class AirBnbRoomCalendarDay(Base):
@@ -130,23 +155,23 @@ class AirBnbRoomCalendarDay(Base):
     )
 
 
-class AirBnbRoomCalendarUpdate(Base):
-    """Stores time at which each room calendar was updated"""
+# class AirBnbRoomCalendarUpdate(Base):
+#     """Stores time at which each room calendar was updated"""
 
-    __tablename__ = "airbnb_room_calendar_updates"
-    room_id = Column(String, primary_key=True)
-    created_at = Column(
-        DateTime,
-        default=func.now(),
-        comment="Timestamp when the room calendar update was created",
-    )
-    finished_at = Column(
-        DateTime,
-        onupdate=func.now(),
-    )
-    any_changes = Column(
-        Boolean, comment="True if there were any changes compared to previous version"
-    )
+#     __tablename__ = "airbnb_room_calendar_updates"
+#     room_id = Column(String, primary_key=True)
+#     created_at = Column(
+#         DateTime,
+#         default=func.now(),
+#         comment="Timestamp when the room calendar update was created",
+#     )
+#     finished_at = Column(
+#         DateTime,
+#         onupdate=func.now(),
+#     )
+#     any_changes = Column(
+#         Boolean, comment="True if there were any changes compared to previous version"
+#     )
 
 
 class AirBnbRoomCalendarDayTransition(Base):
